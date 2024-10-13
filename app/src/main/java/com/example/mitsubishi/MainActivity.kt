@@ -54,7 +54,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun fetchDataFromFirestore() {
         swipeRefreshLayout.isRefreshing = true // Mulai refresh layout
-        db.collection("costumer")
+        db.collection("cars")
             .get()
             .addOnSuccessListener { result ->
                 Log.d("FirestoreData", "Fetched ${result.size()} documents") // Cek berapa banyak dokumen yang diambil
@@ -63,7 +63,7 @@ class MainActivity : AppCompatActivity() {
                     Log.d("FirestoreData", "No documents found")
                 } else {
                     for (document in result) {
-                        val nopol = document.getString("polisi") ?: "Unknown" // Pastikan nama field sudah benar
+                        val nopol = document.getString("noPolis") ?: "Unknown" // Pastikan nama field sudah benar
                         val status = document.getString("status") ?: "Unknown"
                         Log.d("FirestoreData", "Adding document: $nopol, $status") // Log setiap item yang diambil
                         itemList.add(car(nopol, status))

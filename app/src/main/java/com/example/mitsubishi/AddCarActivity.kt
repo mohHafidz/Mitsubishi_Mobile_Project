@@ -6,6 +6,7 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
 import android.widget.Button
@@ -17,11 +18,17 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageReference
+import java.io.ByteArrayOutputStream
+import java.util.UUID
 
 class AddCarActivity : AppCompatActivity() {
     private val db = FirebaseFirestore.getInstance()
+    private val storage = FirebaseStorage.getInstance()
     private lateinit var photoAdapter: AddPhotoAdapter
     private val photoList = ArrayList<Bitmap>()
+    private val descriptions = MutableList(0) { "" }
 
     private val CAMERA_REQUEST_CODE = 1
     private val CAMERA_PERMISSION_CODE = 100
@@ -37,11 +44,9 @@ class AddCarActivity : AppCompatActivity() {
         val addPhotoButton = findViewById<Button>(R.id.addPhotoBTN)
         val recyclerView = findViewById<RecyclerView>(R.id.ListPhoto)
 
-        photoAdapter = AddPhotoAdapter(photoList)
+        photoAdapter = AddPhotoAdapter(photoList, descriptions)
         recyclerView.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
         recyclerView.adapter = photoAdapter
-
-
 
         addPhotoButton.setOnClickListener {
             // Periksa izin kamera sebelum membuka kamera
@@ -66,25 +71,10 @@ class AddCarActivity : AppCompatActivity() {
             val nopol = nopolET.text.toString().trim()
             val model = modelET.text.toString().trim()
 
-            if (nopol.isEmpty() || model.isEmpty()) {
-                Toast.makeText(this, "Tolong isi semua field", Toast.LENGTH_SHORT).show()
+            if (nopol.isEmpty() || model.isEmpty() || photoList.isEmpty()) {
+                Toast.makeText(this, "Tolong isi semua field dan tambahkan foto", Toast.LENGTH_SHORT).show()
             } else {
-                val mobil = hashMapOf(
-                    "polisi" to nopol,
-                    "Model" to model,
-                    "status" to "prediksi"
-                )
-
-                // Tambahkan data ke Firestore
-                db.collection("costumer")
-                    .add(mobil)
-                    .addOnSuccessListener {
-                        Toast.makeText(this, "Data berhasil disimpan!", Toast.LENGTH_SHORT).show()
-                        startActivity(Intent(this, MainActivity::class.java))
-                    }
-                    .addOnFailureListener { e ->
-                        Toast.makeText(this, "Gagal menyimpan data: ${e.message}", Toast.LENGTH_SHORT).show()
-                    }
+                uploadPhotosAndSaveCar(nopol, model)
             }
         }
     }
@@ -98,6 +88,56 @@ class AddCarActivity : AppCompatActivity() {
         }
     }
 
+    private fun uploadPhotosAndSaveCar(nopol: String, model: String) {
+        val carId = UUID.randomUUID().toString()
+        val photoDataList = mutableListOf<Map<String, String>>()
+
+        for (i in photoList.indices) {
+            val bitmap = photoList[i]
+            val imageRef: StorageReference = storage.reference.child("car_photos/$carId/image_$i.jpg")
+
+            val baos = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos)
+            val data = baos.toByteArray()
+
+            val description = descriptions[i]
+
+            imageRef.putBytes(data)
+                .addOnSuccessListener { taskSnapshot ->
+                    imageRef.downloadUrl.addOnSuccessListener { downloadUrl ->
+                        // Ambil deskripsi dari list
+                        val photoData = mapOf(
+                            "url" to downloadUrl.toString(),
+                            "description" to description.ifEmpty { "Deskripsi gambar ke-${i + 1}" } // Menggunakan deskripsi dari input pengguna
+                        )
+                        photoDataList.add(photoData)
+
+                        // Simpan data mobil ke Firestore setelah semua gambar berhasil di-upload
+                        if (photoDataList.size == photoList.size) {
+                            val carData = hashMapOf(
+                                "noPolis" to nopol,
+                                "model" to model,
+                                "photos" to photoDataList,
+                                "status" to "prediksi"
+                            )
+                            db.collection("cars").document(carId)
+                                .set(carData)
+                                .addOnSuccessListener {
+                                    Toast.makeText(this, "Data berhasil disimpan!", Toast.LENGTH_SHORT).show()
+                                    startActivity(Intent(this, MainActivity::class.java))
+                                }
+                                .addOnFailureListener { e ->
+                                    Toast.makeText(this, "Gagal menyimpan data: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
+                        }
+                    }
+                }
+                .addOnFailureListener { e ->
+                    Toast.makeText(this, "Gagal mengupload gambar: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+        }
+    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -106,10 +146,8 @@ class AddCarActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == CAMERA_PERMISSION_CODE) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Jika izin diberikan, buka kamera
                 openCamera()
             } else {
-                // Jika izin ditolak
                 Toast.makeText(this, "Izin kamera ditolak", Toast.LENGTH_SHORT).show()
             }
         }
@@ -120,8 +158,10 @@ class AddCarActivity : AppCompatActivity() {
         if (requestCode == CAMERA_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
             val photo = data?.extras?.get("data") as? Bitmap
             if (photo != null) {
-                // Tambahkan foto ke dalam daftar dan perbarui RecyclerView
+                // Tambahkan foto ke daftar
                 photoList.add(photo)
+                // Tambahkan deskripsi default atau ambil dari EditText jika diperlukan
+                descriptions.add("") // Anda bisa menambahkan logika untuk menginput deskripsi di sini
                 photoAdapter.notifyDataSetChanged()
             } else {
                 Toast.makeText(this, "Gagal mengambil gambar", Toast.LENGTH_SHORT).show()
