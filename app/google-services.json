@@ -1,14 +1,13 @@
 {
   "project_info": {
-    "project_number": "636811130360",
-    "firebase_url": "https://mitsubishi-237cf-default-rtdb.asia-southeast1.firebasedatabase.app",
-    "project_id": "mitsubishi-237cf",
-    "storage_bucket": "mitsubishi-237cf.appspot.com"
+    "project_number": "413045077885",
+    "project_id": "mitsubishi-dataset",
+    "storage_bucket": "mitsubishi-dataset.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:636811130360:android:3d1f91f793e336b14d520d",
+        "mobilesdk_app_id": "1:413045077885:android:684ba54fbbd11c86323e14",
         "android_client_info": {
           "package_name": "com.example.mitsubishi"
         }
@@ -16,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDLEAQtIENfBD1pRmJYSFpIEEFJ90-jc1s"
+          "current_key": "AIzaSyBMFRQgo6T0pYuRwvQKwb6NbsVV76hUI2s"
         }
       ],
       "services": {
