@@ -3,14 +3,16 @@ package com.example.mitsubishi
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.ProgressDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -29,6 +31,8 @@ class AddCarActivity : AppCompatActivity() {
     private lateinit var photoAdapter: AddPhotoAdapter
     private val photoList = ArrayList<Bitmap>()
     private val descriptions = MutableList(0) { "" }
+    private lateinit var blurOverlay : FrameLayout
+    private var progressDialog: ProgressDialog? = null
 
     private val CAMERA_REQUEST_CODE = 1
     private val CAMERA_PERMISSION_CODE = 100
@@ -43,6 +47,12 @@ class AddCarActivity : AppCompatActivity() {
         val modelET = findViewById<EditText>(R.id.Model_ET)
         val addPhotoButton = findViewById<Button>(R.id.addPhotoBTN)
         val recyclerView = findViewById<RecyclerView>(R.id.ListPhoto)
+        blurOverlay = findViewById(R.id.blurOverlay);
+
+        progressDialog = ProgressDialog(this).apply {
+            setMessage("Uploading data...")
+            setCancelable(false)
+        }
 
         photoAdapter = AddPhotoAdapter(photoList, descriptions)
         recyclerView.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
@@ -74,9 +84,20 @@ class AddCarActivity : AppCompatActivity() {
             if (nopol.isEmpty() || model.isEmpty() || photoList.isEmpty()) {
                 Toast.makeText(this, "Tolong isi semua field dan tambahkan foto", Toast.LENGTH_SHORT).show()
             } else {
+                showProgressDialog()
                 uploadPhotosAndSaveCar(nopol, model)
             }
         }
+    }
+
+    private fun showProgressDialog() {
+        blurOverlay.visibility = View.VISIBLE // Show blur effect
+        progressDialog!!.show() // Show loading dialog
+    }
+
+    private fun hideProgressDialog() {
+        progressDialog!!.dismiss() // Hide loading dialog
+        blurOverlay.visibility = View.GONE // Hide blur effect
     }
 
     private fun openCamera() {
@@ -123,10 +144,13 @@ class AddCarActivity : AppCompatActivity() {
                             db.collection("cars").document(carId)
                                 .set(carData)
                                 .addOnSuccessListener {
+                                    hideProgressDialog()
                                     Toast.makeText(this, "Data berhasil disimpan!", Toast.LENGTH_SHORT).show()
                                     startActivity(Intent(this, MainActivity::class.java))
                                 }
                                 .addOnFailureListener { e ->
+                                    hideProgressDialog()
+                                    hideProgressDialog()
                                     Toast.makeText(this, "Gagal menyimpan data: ${e.message}", Toast.LENGTH_SHORT).show()
                                 }
                         }
