@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Mitsubishi</string>
+    <string name="status">Status</string>
+    <string name="no_polisi">No. Polisi</string>
 </resources>
