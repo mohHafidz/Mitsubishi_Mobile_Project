@@ -16,15 +16,11 @@ class CarListAdapter(private val itemList: List<car>, private val itemClickListe
     class ItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val noPol: TextView = itemView.findViewById(R.id.no_polisi)
         val status: TextView = itemView.findViewById(R.id.detail)
-        val detailButton: Button = itemView.findViewById(R.id.detailBtn) // Add this line
 
         fun bind(car: car, clickListener: OnItemClickListener) {
             noPol.text = car.nopol
             status.text = car.status
 
-            detailButton.setOnClickListener {
-                clickListener.onItemClick(car) // Pass the current car item
-            }
         }
     }
 
