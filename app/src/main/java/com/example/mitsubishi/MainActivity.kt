@@ -67,7 +67,7 @@ class MainActivity : AppCompatActivity(), CarListAdapter.OnItemClickListener {
                         val nopol = document.getString("noPolis") ?: "Unknown"
                         val status = document.getBoolean("status") ?: false // Retrieve as boolean
 
-                        Log.d("FirestoreData", "Adding document: $nopol, status: $status")
+//                        Log.d("FirestoreData\", \"Adding document: $nopol, status: $status")
                         itemList.add(car(nopol, status)) // Pass boolean status to Car object
                     }
                     adapter.notifyDataSetChanged() // Update RecyclerView
