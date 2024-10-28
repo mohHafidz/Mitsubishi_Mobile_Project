@@ -6,6 +6,14 @@
         <entry key="Firebase Crashlytics">
           <value>
             <InsightsFilterSettings>
+              <option name="connection">
+                <ConnectionSetting>
+                  <option name="appId" value="com.example.mitsubishi" />
+                  <option name="mobileSdkAppId" value="1:413045077885:android:684ba54fbbd11c86323e14" />
+                  <option name="projectId" value="mitsubishi-dataset" />
+                  <option name="projectNumber" value="413045077885" />
+                </ConnectionSetting>
+              </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
               <option name="timeIntervalDays" value="THIRTY_DAYS" />
               <option name="visibilityType" value="ALL" />

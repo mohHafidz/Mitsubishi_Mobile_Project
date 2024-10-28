@@ -1,7 +1,7 @@
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.mitsubishi.R
@@ -16,11 +16,15 @@ class CarListAdapter(private val itemList: List<car>, private val itemClickListe
     class ItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val noPol: TextView = itemView.findViewById(R.id.no_polisi)
         val status: TextView = itemView.findViewById(R.id.detail)
+        val frameLayoutBtn: FrameLayout = itemView.findViewById(R.id.Button)
 
         fun bind(car: car, clickListener: OnItemClickListener) {
             noPol.text = car.nopol
-            status.text = car.status
+            status.text = if (car.status) "Active" else "Inactive" // Display status as text
 
+            frameLayoutBtn.setOnClickListener {
+                clickListener.onItemClick(car)
+            }
         }
     }
 

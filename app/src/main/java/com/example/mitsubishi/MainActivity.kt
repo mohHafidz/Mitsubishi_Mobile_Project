@@ -65,9 +65,10 @@ class MainActivity : AppCompatActivity(), CarListAdapter.OnItemClickListener {
                 } else {
                     for (document in result) {
                         val nopol = document.getString("noPolis") ?: "Unknown"
-                        val status = document.getString("status") ?: "Unknown"
-                        Log.d("FirestoreData", "Adding document: $nopol, $status")
-                        itemList.add(car(nopol, status))
+                        val status = document.getBoolean("status") ?: false // Retrieve as boolean
+
+                        Log.d("FirestoreData", "Adding document: $nopol, status: $status")
+                        itemList.add(car(nopol, status)) // Pass boolean status to Car object
                     }
                     adapter.notifyDataSetChanged() // Update RecyclerView
                 }
@@ -81,12 +82,16 @@ class MainActivity : AppCompatActivity(), CarListAdapter.OnItemClickListener {
 
     // Handle item click
     override fun onItemClick(car: car) {
-        // Create an Intent to navigate to the detail page
-        val intent = Intent(this, CarDetailActivity::class.java).apply {
-            putExtra("NO_POLISI", car.nopol)
-            putExtra("STATUS", car.status)
+        if (car.status) {
+            // Jika status true, tampilkan Toast
+            Toast.makeText(this, "Ke page rama", Toast.LENGTH_SHORT).show()
+        } else {
+            // Jika status false, navigasi ke detail page
+            val intent = Intent(this, CarDetailActivity::class.java).apply {
+                putExtra("NO_POLISI", car.nopol)
+            }
+            startActivity(intent) // Start the detail activity
         }
-        startActivity(intent) // Start the detail activity
     }
 }
 

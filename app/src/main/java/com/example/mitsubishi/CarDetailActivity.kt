@@ -1,68 +1,162 @@
 package com.example.mitsubishi
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
-import android.widget.ImageView
+import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import com.bumptech.glide.Glide
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.firestore.FirebaseFirestore
 
 class CarDetailActivity : AppCompatActivity() {
 
     private val db = FirebaseFirestore.getInstance()
+    private var photoItems: List<PhotoItem> = emptyList() // Tambahkan photoItems sebagai variabel global
 
+    @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_car_detail)
 
         val noPolTextView = findViewById<TextView>(R.id.noPolTextView)
         val modelTextView = findViewById<TextView>(R.id.modelTextView)
-        val statusTextView = findViewById<TextView>(R.id.statusTextView)
-        val photoImageView = findViewById<ImageView>(R.id.carPhotoImageView)
+        val statusTextView = findViewById<TextView>(R.id.status_tv)
+        val confirmButton = findViewById<Button>(R.id.confirm_Btn)
+        val carPhotosRecyclerView = findViewById<RecyclerView>(R.id.carPhotosRecyclerView)
 
-        // Get the carId from the intent
-        val carId = intent.getStringExtra("CAR_ID")
+        carPhotosRecyclerView.layoutManager = LinearLayoutManager(this)
 
+        val carId = intent.getStringExtra("NO_POLISI")
         if (carId != null) {
-            // Fetch the car details from Firestore
-            db.collection("cars").document(carId).get()
-                .addOnSuccessListener { document ->
-                    if (document != null) {
+            Log.d("CarDetail", "Fetching data for car ID: $carId")
+            fetchCarDetails(carId, noPolTextView, modelTextView, statusTextView, confirmButton, carPhotosRecyclerView)
+        } else {
+            Toast.makeText(this, "Invalid car ID", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun fetchCarDetails(
+        carId: String,
+        noPolTextView: TextView,
+        modelTextView: TextView,
+        statusTextView: TextView,
+        confirmButton: Button,
+        carPhotosRecyclerView: RecyclerView
+    ) {
+        db.collection("cars")
+            .whereEqualTo("noPolis", carId)
+            .get()
+            .addOnSuccessListener { documents ->
+                if (documents.isEmpty) {
+                    Toast.makeText(this, "Car not found", Toast.LENGTH_SHORT).show()
+                } else {
+                    for (document in documents) {
                         val noPol = document.getString("noPolis") ?: "Unknown"
                         val model = document.getString("model") ?: "Unknown"
-                        val status = document.getString("status") ?: "Unknown"
+                        val status = document.getBoolean("status") ?: false
                         val photos = document.get("photos") as? List<Map<String, String>>
 
-                        // Set the retrieved data to the UI
                         noPolTextView.text = noPol
                         modelTextView.text = model
-                        statusTextView.text = status
+                        statusTextView.text = if (status) "Active" else "Inactive"
 
-                        // Display the first image from the photos list (you can modify this for multiple photos)
-                        if (!photos.isNullOrEmpty()) {
-                            val photoUrl = photos[0]["url"]
-                            if (photoUrl != null) {
-                                Glide.with(this)
-                                    .load(photoUrl)
-                                    .into(photoImageView)
-                            } else {
-                                Toast.makeText(this, "Photo URL is missing", Toast.LENGTH_SHORT).show()
-                            }
-                        } else {
-                            Toast.makeText(this, "No photos available", Toast.LENGTH_SHORT).show()
+                        val documentId = document.id
+
+                        confirmButton.setOnClickListener {
+                            showConfirmationDialog(status, documentId, statusTextView)
                         }
-                    } else {
-                        Toast.makeText(this, "Car not found", Toast.LENGTH_SHORT).show()
+
+                        photoItems = photos?.mapNotNull {
+                            val url = it["url"] as? String
+                            val description = it["description"] as? String
+                            val codeBarang = it["codeBarang"] as? String
+                            val jumlah = (it["jumlah"] as? Number)?.toInt() ?: 0
+
+                            if (url != null && description != null && codeBarang != null) {
+                                PhotoItem(url, description, codeBarang, jumlah)
+                            } else {
+                                null
+                            }
+                        } ?: emptyList()
+
+                        fetchSparePartsSuggestions { suggestions ->
+                            val adapter = DetailPhotoAdapter(photoItems, suggestions)
+                            carPhotosRecyclerView.adapter = adapter
+                        }
                     }
                 }
-                .addOnFailureListener { e ->
-                    Log.e("CarDetail", "Error fetching car details", e)
-                    Toast.makeText(this, "Failed to fetch car details: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-        } else {
-            Toast.makeText(this, "No car ID provided", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener { exception ->
+                Log.e("CarDetail", "Error fetching car details: ", exception)
+                Toast.makeText(this, "Error fetching car details: ${exception.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun updateCarStatus(documentId: String, newStatus: Boolean, updatedPhotos: List<Map<String, Any>>) {
+        Log.d("CarDetail", "Updating status for document ID: $documentId to $newStatus")
+        db.collection("cars").document(documentId)
+            .update("status", newStatus, "photos", updatedPhotos)
+            .addOnSuccessListener {
+                Log.d("CarDetail", "Car status updated successfully")
+                Toast.makeText(this, "Status updated successfully!", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener { exception ->
+                Log.e("CarDetail", "Error updating car status: ", exception)
+                Toast.makeText(this, "Error updating status: ${exception.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun fetchSparePartsSuggestions(onSuccess: (List<String>) -> Unit) {
+        db.collection("Spare Part")
+            .get()
+            .addOnSuccessListener { documents ->
+                val suggestions = documents.mapNotNull { it.getString("Nomor Barang") }
+                Log.d("CarDetail", "Spare parts suggestions: $suggestions")
+                onSuccess(suggestions)
+            }
+            .addOnFailureListener { exception ->
+                Log.e("CarDetail", "Error fetching spare parts: ", exception)
+                Toast.makeText(this, "Error fetching spare parts: ${exception.message}", Toast.LENGTH_SHORT).show()
+                onSuccess(emptyList())
+            }
+    }
+
+    private fun showConfirmationDialog(currentStatus: Boolean, documentId: String, statusTextView: TextView) {
+        if (currentStatus) {
+            Toast.makeText(this, "Status sudah Active dan tidak dapat diubah lagi.", Toast.LENGTH_SHORT).show()
+            return
         }
+
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Konfirmasi Status")
+        builder.setMessage("Apakah Anda yakin ingin mengubah status mobil ini?")
+
+        builder.setPositiveButton("Ya") { dialog, _ ->
+            val newStatus = !currentStatus
+            statusTextView.text = if (newStatus) "Active" else "Inactive"
+
+            val updatedPhotos = photoItems.map {
+                mapOf(
+                    "url" to it.url,
+                    "description" to it.description,
+                    "codeBarang" to it.codeBarang,
+                    "jumlah" to it.jumlah
+                )
+            }
+
+            updateCarStatus(documentId, newStatus, updatedPhotos)
+            Toast.makeText(this, "Status berhasil diperbarui", Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+        }
+
+        builder.setNegativeButton("Tidak") { dialog, _ ->
+            dialog.dismiss()
+        }
+
+        builder.create().show()
     }
 }
