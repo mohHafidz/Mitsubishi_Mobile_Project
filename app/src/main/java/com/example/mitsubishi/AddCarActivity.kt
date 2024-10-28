@@ -129,7 +129,9 @@ class AddCarActivity : AppCompatActivity() {
                         // Ambil deskripsi dari list
                         val photoData = mapOf(
                             "url" to downloadUrl.toString(),
-                            "description" to description.ifEmpty { "Deskripsi gambar ke-${i + 1}" } // Menggunakan deskripsi dari input pengguna
+                            "description" to description.ifEmpty { "Deskripsi gambar ke-${i + 1}" }, // Menggunakan deskripsi dari input pengguna
+                            "codeBarang" to "",
+                            "jumlah" to "0"
                         )
                         photoDataList.add(photoData)
 
