@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
+import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -16,6 +17,10 @@ class CarDetailActivity : AppCompatActivity() {
 
     private val db = FirebaseFirestore.getInstance()
     private var photoItems: List<PhotoItem> = emptyList() // Tambahkan photoItems sebagai variabel global
+
+    private lateinit var urgencyRadioGroup: RadioGroup
+    private var selectedUrgency: String = "Comfort" // Default value
+    private var sparePartSuggestions: List<String> = emptyList()
 
     @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,6 +41,18 @@ class CarDetailActivity : AppCompatActivity() {
             fetchCarDetails(carId, noPolTextView, modelTextView, statusTextView, confirmButton, carPhotosRecyclerView)
         } else {
             Toast.makeText(this, "Invalid car ID", Toast.LENGTH_SHORT).show()
+        }
+
+        urgencyRadioGroup = findViewById(R.id.urgensiRadioGroup)
+        urgencyRadioGroup.setOnCheckedChangeListener { _, checkedId ->
+            selectedUrgency = when (checkedId) {
+                R.id.comfortRadioButton -> "Comfort"
+                R.id.safetyRadioButton -> "Safety"
+                else -> "Comfort" // Default case
+            }
+        }
+        fetchSparePartsSuggestions { suggestions ->
+            sparePartSuggestions = suggestions // Store fetched suggestions in the global list
         }
     }
 
@@ -62,12 +79,39 @@ class CarDetailActivity : AppCompatActivity() {
 
                         noPolTextView.text = noPol
                         modelTextView.text = model
-                        statusTextView.text = if (status) "Active" else "Inactive"
+                        statusTextView.text = if (status) "Pending" else "Confirm"
 
                         val documentId = document.id
 
                         confirmButton.setOnClickListener {
-                            showConfirmationDialog(status, documentId, statusTextView)
+                            // Check if urgency is selected
+                            val selectedUrgency = when (urgencyRadioGroup.checkedRadioButtonId) {
+                                R.id.comfortRadioButton -> "Comfort"
+                                R.id.safetyRadioButton -> "Safety"
+                                else -> null
+                            }
+
+                            when {
+                                // Validate each codeBarang against the spare part suggestions
+                                photoItems.any { it.codeBarang !in sparePartSuggestions } -> {
+                                    Toast.makeText(this, "Invalid codeBarang. Please ensure all items are valid.", Toast.LENGTH_SHORT).show()
+                                }
+
+                                // Ensure 'jumlah' is greater than 0 for all items
+                                photoItems.any { it.jumlah <= 0 } -> {
+                                    Toast.makeText(this, "Quantity must be greater than 0 for all items.", Toast.LENGTH_SHORT).show()
+                                }
+
+                                // Check if urgency is selected
+                                selectedUrgency == null -> {
+                                    Toast.makeText(this, "Please select an urgency (Comfort or Safety).", Toast.LENGTH_SHORT).show()
+                                }
+
+                                // If all validations pass, proceed to show confirmation dialog
+                                else -> {
+                                    showConfirmationDialog(status, documentId, statusTextView)
+                                }
+                            }
                         }
 
                         photoItems = photos?.mapNotNull {
@@ -97,9 +141,15 @@ class CarDetailActivity : AppCompatActivity() {
     }
 
     private fun updateCarStatus(documentId: String, newStatus: Boolean, updatedPhotos: List<Map<String, Any>>) {
+        val updates = mapOf(
+            "status" to newStatus,
+            "photos" to updatedPhotos,
+            "urgensi" to selectedUrgency // Add urgency to Firestore
+        )
+
         Log.d("CarDetail", "Updating status for document ID: $documentId to $newStatus")
         db.collection("cars").document(documentId)
-            .update("status", newStatus, "photos", updatedPhotos)
+            .update(updates)
             .addOnSuccessListener {
                 Log.d("CarDetail", "Car status updated successfully")
                 Toast.makeText(this, "Status updated successfully!", Toast.LENGTH_SHORT).show()
@@ -151,6 +201,7 @@ class CarDetailActivity : AppCompatActivity() {
             updateCarStatus(documentId, newStatus, updatedPhotos)
             Toast.makeText(this, "Status berhasil diperbarui", Toast.LENGTH_SHORT).show()
             dialog.dismiss()
+            finish()
         }
 
         builder.setNegativeButton("Tidak") { dialog, _ ->

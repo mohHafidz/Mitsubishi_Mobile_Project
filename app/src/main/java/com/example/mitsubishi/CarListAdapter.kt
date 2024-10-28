@@ -20,7 +20,7 @@ class CarListAdapter(private val itemList: List<car>, private val itemClickListe
 
         fun bind(car: car, clickListener: OnItemClickListener) {
             noPol.text = car.nopol
-            status.text = if (car.status) "Active" else "Inactive" // Display status as text
+            status.text = if (car.status) "Confirm" else "Pending" // Display status as text
 
             frameLayoutBtn.setOnClickListener {
                 clickListener.onItemClick(car)
