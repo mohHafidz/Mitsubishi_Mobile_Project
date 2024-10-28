@@ -141,7 +141,7 @@ class AddCarActivity : AppCompatActivity() {
                                 "noPolis" to nopol,
                                 "model" to model,
                                 "photos" to photoDataList,
-                                "status" to "false"
+                                "status" to false
                             )
                             db.collection("cars").document(carId)
                                 .set(carData)
