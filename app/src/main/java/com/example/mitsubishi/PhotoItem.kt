@@ -1,3 +1,3 @@
 package com.example.mitsubishi
 
-data class PhotoItem(val url: String, val description: String, var codeBarang: String, var jumlah: Int, var harga: Double)
+data class PhotoItem(val url: String, val description: String, var codeBarang: String, var jumlah: Int, var harga: Double, var urgency: String)

@@ -9,6 +9,7 @@ import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.RadioGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -29,6 +30,10 @@ class DetailPhotoAdapter(
         private val decreaseButton: Button = itemView.findViewById(R.id.decreaseButton)
         private val increaseButton: Button = itemView.findViewById(R.id.increaseButton)
         private val hargaBarang: TextView = itemView.findViewById(R.id.cost_tv)
+
+        private val urgencyRadioGroup: RadioGroup = itemView.findViewById(R.id.urgensiRadioGroup)
+        private var selectedUrgency = "Comfort" // Default value
+
 
         private var quantity = 0
         private var hargaEceran: Double? = null // Store the unit price
@@ -73,6 +78,16 @@ class DetailPhotoAdapter(
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             })
+
+            urgencyRadioGroup.setOnCheckedChangeListener { _, checkedId ->
+                selectedUrgency = when (checkedId) {
+                    R.id.comfortRadioButton -> "Comfort"
+                    R.id.safetyRadioButton -> "Safety"
+                    else -> "Comfort" // Default case
+                }
+                // Update the urgency field in photoItems for the current adapter position
+                photoItems[adapterPosition].urgency = selectedUrgency
+            }
         }
 
         fun bind(photoItem: PhotoItem) {
@@ -89,6 +104,12 @@ class DetailPhotoAdapter(
                     hargaEceran = harga
                     updateHargaBarangDisplay() // Update total price based on current quantity
                 }
+            }
+            // Set the previously selected urgency for each item
+            when (photoItem.urgency) {
+                "Comfort" -> urgencyRadioGroup.check(R.id.comfortRadioButton)
+                "Safety" -> urgencyRadioGroup.check(R.id.safetyRadioButton)
+                else -> urgencyRadioGroup.clearCheck()
             }
         }
 

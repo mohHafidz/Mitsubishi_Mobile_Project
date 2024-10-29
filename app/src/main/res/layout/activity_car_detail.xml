@@ -72,36 +72,6 @@
                 app:layout_constraintHorizontal_bias="0.498"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/carPhotosRecyclerView" />
-
-            <RadioGroup
-                android:id="@+id/urgensiRadioGroup"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/confirm_Btn">
-
-                <RadioButton
-                    android:id="@+id/safetyRadioButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Safety"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toEndOf="@+id/comfortRadioButton"
-                    tools:layout_editor_absoluteY="404dp" />
-
-                <RadioButton
-                    android:id="@+id/comfortRadioButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Comfort"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toStartOf="@+id/safetyRadioButton"
-                    app:layout_constraintStart_toStartOf="parent" />
-
-            </RadioGroup>
         </androidx.constraintlayout.widget.ConstraintLayout>
 
     </ScrollView>

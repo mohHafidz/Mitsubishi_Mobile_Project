@@ -90,7 +90,9 @@ class MainActivity : AppCompatActivity(), CarListAdapter.OnItemClickListener {
     override fun onItemClick(car: car) {
         if (car.status) {
             // Jika status true, tampilkan Toast
+            val intent = Intent(this, GeneratePDFActivity::class.java).apply{}
             Toast.makeText(this, "Ke page rama", Toast.LENGTH_SHORT).show()
+            startActivity(intent)
         } else {
             // Jika status false, navigasi ke detail page
             val intent = Intent(this, CarDetailActivity::class.java).apply {

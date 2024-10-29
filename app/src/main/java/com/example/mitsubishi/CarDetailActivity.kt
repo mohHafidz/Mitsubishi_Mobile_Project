@@ -18,10 +18,8 @@ class CarDetailActivity : AppCompatActivity() {
     private val db = FirebaseFirestore.getInstance()
     private var photoItems: List<PhotoItem> = emptyList() // Tambahkan photoItems sebagai variabel global
 
-    private lateinit var urgencyRadioGroup: RadioGroup
-    private var selectedUrgency: String = "None" // Default value
     private var sparePartSuggestions: List<String> = emptyList()
-    private lateinit var allCostCar: TextView
+    //private lateinit var allCostCar: TextView
 
 
     @SuppressLint("MissingInflatedId")
@@ -47,14 +45,6 @@ class CarDetailActivity : AppCompatActivity() {
             Toast.makeText(this, "Invalid car ID", Toast.LENGTH_SHORT).show()
         }
 
-        urgencyRadioGroup = findViewById(R.id.urgensiRadioGroup)
-        urgencyRadioGroup.setOnCheckedChangeListener { _, checkedId ->
-            selectedUrgency = when (checkedId) {
-                R.id.comfortRadioButton -> "Comfort"
-                R.id.safetyRadioButton -> "Safety"
-                else -> "Comfort" // Default case
-            }
-        }
         fetchSparePartsSuggestions { suggestions ->
             sparePartSuggestions = suggestions // Store fetched suggestions in the global list
         }
@@ -83,17 +73,12 @@ class CarDetailActivity : AppCompatActivity() {
 
                         noPolTextView.text = noPol
                         modelTextView.text = model
-                        statusTextView.text = if (status) "Pending" else "Confirm"
+                        statusTextView.text = if (status) "Confirm" else "Pending"
 
                         val documentId = document.id
 
                         confirmButton.setOnClickListener {
                             // Check if urgency is selected
-                            val selectedUrgency = when (urgencyRadioGroup.checkedRadioButtonId) {
-                                R.id.comfortRadioButton -> "Comfort"
-                                R.id.safetyRadioButton -> "Safety"
-                                else -> null
-                            }
 
                             when {
                                 // Validate each codeBarang against the spare part suggestions
@@ -105,12 +90,6 @@ class CarDetailActivity : AppCompatActivity() {
                                 photoItems.any { it.jumlah <= 0 } -> {
                                     Toast.makeText(this, "Quantity must be greater than 0 for all items.", Toast.LENGTH_SHORT).show()
                                 }
-
-                                // Check if urgency is selected
-                                selectedUrgency == null -> {
-                                    Toast.makeText(this, "Please select an urgency (Comfort or Safety).", Toast.LENGTH_SHORT).show()
-                                }
-
                                 // If all validations pass, proceed to show confirmation dialog
                                 else -> {
                                     showConfirmationDialog(status, documentId, statusTextView)
@@ -124,9 +103,10 @@ class CarDetailActivity : AppCompatActivity() {
                             val codeBarang = it["codeBarang"] as? String
                             val jumlah = (it["jumlah"] as? Number)?.toInt() ?: 0
                             val harga = (it["harga"] as? Number)?.toDouble() ?: 0.0
+                            var urgensi = it["urgensi"] as? String ?: ""
 
                             if (url != null && description != null && codeBarang != null) {
-                                PhotoItem(url, description, codeBarang, jumlah, harga)
+                                PhotoItem(url, description, codeBarang, jumlah, harga, urgensi)
                             } else {
                                 null
                             }
@@ -152,7 +132,6 @@ class CarDetailActivity : AppCompatActivity() {
         val updates = mapOf(
             "status" to newStatus,
             "photos" to updatedPhotos,
-            "urgensi" to selectedUrgency, // Add urgency to Firestore
             "Biaya" to totalCost
         )
 
@@ -210,7 +189,8 @@ class CarDetailActivity : AppCompatActivity() {
                     "codeBarang" to it.codeBarang,
                     "jumlah" to it.jumlah,
                     "harga" to it.harga,
-                    "totalPrice" to it.jumlah * it.harga // Calculate and add total price
+                    "totalPrice" to it.jumlah * it.harga,// Calculate and add total price
+                    "urgensi" to it.urgency
                 )
             }
 
