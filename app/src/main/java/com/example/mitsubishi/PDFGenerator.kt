@@ -22,106 +22,169 @@ import java.io.File
 import java.io.FileOutputStream
 
 class PDFGenerator(private val context: Context) {
-    // Function to create a PDF file and return the generated File
-    fun createPDF(noPol: String, model: String, urgensi: String, status: Boolean, photos: MutableList<Photo>): File? {
-        return try {
-            // Path to save the PDF
-            val pdfPath = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)?.toString()
-            if (pdfPath == null) {
-                Log.e("PDFGenerator", "Failed to get the directory for saving PDF.")
-                return null
-            }
-            val file = File(pdfPath, "$noPol.pdf")
 
-            // Create output stream and write PDF
-            FileOutputStream(file).use { outputStream ->
-                // Initialize PdfWriter and Document
-                val pdfWriter = PdfWriter(outputStream)
-                val pdfDocument = PdfDocument(pdfWriter)
-                val document = Document(pdfDocument)
-
-                // Add title
-                document.add(Paragraph("Car Details").setBold().setFontSize(20f))
-
-                // Create a table with 4 columns
-                val table = Table(UnitValue.createPercentArray(floatArrayOf(1f, 2f, 1f, 1f)))
-                table.setWidth(UnitValue.createPercentValue(100f))
-
-                // Add table headers
-                table.addCell(Cell().add(Paragraph("No Polisi").setBold()))
-                table.addCell(Cell().add(Paragraph("Model").setBold()))
-                table.addCell(Cell().add(Paragraph("Urgensi").setBold()))
-                table.addCell(Cell().add(Paragraph("Status").setBold()))
-
-                // Add data to the table
-                table.addCell(noPol)
-                table.addCell(model)
-                table.addCell(urgensi)
-                table.addCell(if (status) "Active" else "Inactive")
-
-                // Add the table to the PDF document
-                document.add(table)
-
-                // Add photos if available
-                photos.forEach { photo ->
-                    Log.d("PDFGenerator", "Photo Code Barang: ${photo.codeBarang}")
-                    Log.d("PDFGenerator", "Photo Description: ${photo.description}")
-
-                    // Adding title or description of the photo if available
-                    if (!photo.codeBarang.isNullOrEmpty()) {
-                        document.add(Paragraph("Title: ${photo.codeBarang}").setBold())
-                    }
-                    if (!photo.description.isNullOrEmpty()) {
-                        document.add(Paragraph("Description: ${photo.description}"))
-                    }
-
-                    val photoUrl = photo.url
-                    Log.d("PDFGenerator", "Photo URL: $photoUrl")
-
-                    if (!photoUrl.isNullOrEmpty()) {
-                        // Use Glide to load the image into a Bitmap
-                        Glide.with(context)
-                            .asBitmap()
-                            .load(photoUrl)
-                            .into(object : CustomTarget<Bitmap>() {
-                                override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
-                                    // Convert Bitmap to ByteArray
-                                    val stream = ByteArrayOutputStream()
-                                    resource.compress(Bitmap.CompressFormat.PNG, 100, stream)
-                                    val byteArray = stream.toByteArray()
-
-                                    // Create ImageData from ByteArray
-                                    val imageData = ImageDataFactory.create(byteArray)
-                                    val image = Image(imageData).apply {
-                                        setWidth(UnitValue.createPercentValue(50f))
-                                        setAutoScaleHeight(true)
-                                    }
-                                    // Add image to the document
-                                    document.add(image)
-                                    Log.d("PDFGenerator", "Image added successfully.")
-                                }
-
-                                override fun onLoadCleared(placeholder: Drawable?) {
-                                    // Handle cleanup if necessary
-                                }
-
-                                override fun onLoadFailed(errorDrawable: Drawable?) {
-                                    Log.e("PDFGenerator", "Failed to load image from URL: $photoUrl")
-                                }
-                            })
-                    } else {
-                        Log.e("PDFGenerator", "Photo URL is null or empty")
-                    }
-                }
-
-                // Close the document after completion
-                document.close()
-                Log.d("PDFGenerator", "PDF created successfully for $noPol")
-                file // Return the generated file
-            }
-        } catch (e: Exception) {
-            Log.e("PDFGenerator", "Error creating PDF: $e")
-            null
+    fun createPDF(noPol: String, model: String, urgensi: String, status: Boolean, photos: MutableList<Photo>, onComplete: (File?) -> Unit) {
+        // Path untuk menyimpan PDF
+        val pdfPath = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)?.toString()
+        if (pdfPath == null) {
+            Log.e("PDFGenerator", "Failed to get the directory for saving PDF.")
+            onComplete(null)
+            return
         }
+        val file = File(pdfPath, "$noPol.pdf")
+
+        // Ambil semua gambar terlebih dahulu, baru buat PDF
+        loadPhotos(photos) { loadedPhotos ->
+            try {
+                FileOutputStream(file).use { outputStream ->
+                    val pdfWriter = PdfWriter(outputStream)
+                    val pdfDocument = PdfDocument(pdfWriter)
+                    val document = Document(pdfDocument)
+
+                    // Tambahkan Judul
+                    document.add(Paragraph("Car Details").setBold().setFontSize(20f))
+
+                    // Buat tabel data kendaraan
+                    val tableHeader = Table(UnitValue.createPercentArray(floatArrayOf(1f, 2f, 1f, 1f)))
+                    tableHeader.setWidth(UnitValue.createPercentValue(100f))
+                    tableHeader.addCell(Cell().add(Paragraph("No Polisi").setBold()))
+                    tableHeader.addCell(Cell().add(Paragraph("Model").setBold()))
+                    tableHeader.addCell(Cell().add(Paragraph("Urgensi").setBold()))
+                    tableHeader.addCell(Cell().add(Paragraph("Status").setBold()))
+                    tableHeader.addCell(noPol)
+                    tableHeader.addCell(model)
+                    tableHeader.addCell(urgensi)
+                    tableHeader.addCell(if (status) "Active" else "Inactive")
+
+                    // Tambahkan header tabel ke PDF
+                    document.add(tableHeader)
+
+                    // Tambahkan jarak antara tableHeader dan partTable
+                    document.add(Paragraph(" ")) // Menambahkan paragraf kosong untuk jarak
+
+
+                    // Buat tabel untuk data bagian (parts)
+                    val partTable = Table(UnitValue.createPercentArray(floatArrayOf(1f, 2f, 2f, 1f, 1f, 1f, 1f, 2f)))
+                    partTable.setWidth(UnitValue.createPercentValue(100f))
+
+                    // Header untuk tabel parts
+                    partTable.addCell(Cell().add(Paragraph("NO").setBold()))
+                    partTable.addCell(Cell().add(Paragraph("FOTO PART").setBold()))
+                    partTable.addCell(Cell().add(Paragraph("NO PART").setBold()))
+//                    partTable.addCell(Cell().add(Paragraph("NAMA PART").setBold()))
+                    partTable.addCell(Cell().add(Paragraph("HARGA").setBold()))
+                    partTable.addCell(Cell().add(Paragraph("QTY").setBold()))
+                    partTable.addCell(Cell().add(Paragraph("TOTAL").setBold()))
+                    partTable.addCell(Cell().add(Paragraph("FAKTOR URGENSI").setBold()))
+                    partTable.addCell(Cell().add(Paragraph("KETERANGAN").setBold()))
+
+                    // Ukuran gambar dalam dp
+                    val imageWidthPx = dpToPx(50, context)  // Konversi 50dp ke px
+                    val imageHeightPx = dpToPx(50, context) // Konversi 50dp ke px
+
+                    // Tambahkan setiap foto beserta detailnya
+                    loadedPhotos.forEachIndexed { index, (photo, bitmap) ->
+                        // NO
+                        partTable.addCell((index + 1).toString())
+
+                        // FOTO PART
+                        bitmap?.let {
+                            val stream = ByteArrayOutputStream()
+                            it.compress(Bitmap.CompressFormat.PNG, 100, stream) // Kualitas tinggi
+                            val byteArray = stream.toByteArray()
+                            val imageData = ImageDataFactory.create(byteArray)
+                            val image = Image(imageData).apply {
+                                setWidth(imageWidthPx) // Tetapkan ukuran lebar
+                                setHeight(imageHeightPx) // Tetapkan ukuran tinggi
+                            }
+                            partTable.addCell(Cell().add(image))
+                        } ?: partTable.addCell("") // Jika tidak ada gambar
+
+                        // NO PART
+                        partTable.addCell(photo.codeBarang ?: "")
+
+                        // NAMA PART
+//                        partTable.addCell(photo.namaPart ?: "")
+
+                        // HARGA
+                        partTable.addCell(photo.harga.toString() ?: "")
+
+                        // QTY
+                        partTable.addCell(photo.jumlah.toString() ?: "")
+
+                        // TOTAL
+                        partTable.addCell(photo.totalPrice.toString() ?: "")
+
+                        // FAKTOR URGENSI
+                        partTable.addCell(urgensi ?: "")
+
+                        // KETERANGAN
+                        partTable.addCell(photo.description ?: "")
+                    }
+
+                    // Tambahkan tabel part ke PDF
+                    document.add(partTable)
+
+                    // Tutup dokumen setelah selesai
+                    document.close()
+                    Log.d("PDFGenerator", "PDF created successfully for $noPol")
+                    onComplete(file) // Kembalikan file yang dihasilkan
+                }
+            } catch (e: Exception) {
+                Log.e("PDFGenerator", "Error creating PDF: $e")
+                onComplete(null)
+            }
+        }
+    }
+
+    // Fungsi untuk memuat semua gambar dari URL menggunakan Glide
+    private fun loadPhotos(photos: List<Photo>, onPhotosLoaded: (List<Pair<Photo, Bitmap?>>) -> Unit) {
+        val loadedPhotos = mutableListOf<Pair<Photo, Bitmap?>>()
+        var photosProcessed = 0
+
+        photos.forEach { photo ->
+            val photoUrl = photo.url
+            if (!photoUrl.isNullOrEmpty()) {
+                Glide.with(context)
+                    .asBitmap()
+                    .load(photoUrl)
+                    .into(object : CustomTarget<Bitmap>() {
+                        override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
+                            loadedPhotos.add(Pair(photo, resource))
+                            photosProcessed++
+                            if (photosProcessed == photos.size) {
+                                onPhotosLoaded(loadedPhotos)
+                            }
+                        }
+
+                        override fun onLoadCleared(placeholder: Drawable?) {
+                            photosProcessed++
+                            if (photosProcessed == photos.size) {
+                                onPhotosLoaded(loadedPhotos)
+                            }
+                        }
+
+                        override fun onLoadFailed(errorDrawable: Drawable?) {
+                            Log.e("PDFGenerator", "Failed to load image from URL: $photoUrl")
+                            loadedPhotos.add(Pair(photo, null))
+                            photosProcessed++
+                            if (photosProcessed == photos.size) {
+                                onPhotosLoaded(loadedPhotos)
+                            }
+                        }
+                    })
+            } else {
+                loadedPhotos.add(Pair(photo, null))
+                photosProcessed++
+                if (photosProcessed == photos.size) {
+                    onPhotosLoaded(loadedPhotos)
+                }
+            }
+        }
+    }
+
+    // Fungsi untuk konversi dp ke px
+    private fun dpToPx(dp: Int, context: Context): Float {
+        return dp * context.resources.displayMetrics.density
     }
 }
