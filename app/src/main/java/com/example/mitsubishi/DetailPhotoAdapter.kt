@@ -12,6 +12,9 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.google.firebase.firestore.FirebaseFirestore
+import java.text.NumberFormat
+import java.util.Locale
 
 class DetailPhotoAdapter(
     private var photoItems: List<PhotoItem>,
@@ -25,8 +28,10 @@ class DetailPhotoAdapter(
         private val quantityTextView: TextView = itemView.findViewById(R.id.quantityTextView)
         private val decreaseButton: Button = itemView.findViewById(R.id.decreaseButton)
         private val increaseButton: Button = itemView.findViewById(R.id.increaseButton)
+        private val hargaBarang: TextView = itemView.findViewById(R.id.cost_tv)
 
         private var quantity = 0
+        private var hargaEceran: Double? = null // Store the unit price
 
         init {
             val adapter = ArrayAdapter(itemView.context, android.R.layout.simple_dropdown_item_1line, suggestions)
@@ -37,23 +42,36 @@ class DetailPhotoAdapter(
                 if (quantity > 0) {
                     quantity--
                     updateQuantityDisplay()
+                    updateHargaBarangDisplay() // Update total price based on new quantity
                 }
             }
 
             increaseButton.setOnClickListener {
                 quantity++
                 updateQuantityDisplay()
+                updateHargaBarangDisplay() // Update total price based on new quantity
             }
 
             kodeBarang.addTextChangedListener(object : TextWatcher {
                 override fun afterTextChanged(s: Editable?) {
-                    // Save codeBarang input to photoItem when changed
-                    s?.let { photoItems[adapterPosition].codeBarang = it.toString() }
+                    s?.let {
+                        val codeBarang = it.toString()
+                        photoItems[adapterPosition].codeBarang = codeBarang
+
+                        // Fetch the price and update UI
+                        fetchHargaEceran(codeBarang) { harga ->
+                            if (harga != null) {
+                                hargaEceran = harga // Store the unit price
+                                updateHargaBarangDisplay() // Update total price based on current quantity
+                            } else {
+                                hargaBarang.text = "Harga tidak ditemukan"
+                            }
+                        }
+                    }
                 }
+
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                    // Custom search or filtering logic could go here
-                }
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             })
         }
 
@@ -61,16 +79,52 @@ class DetailPhotoAdapter(
             Glide.with(itemView.context).load(photoItem.url).into(imageView)
             descriptionView.text = photoItem.description
 
-            // Initialize quantity from photoItem if photoItem has quantity data
             quantity = photoItem.jumlah
             updateQuantityDisplay()
+
+            // Set initial `Harga Eceran` if codeBarang is available
+            val codeBarang = photoItem.codeBarang
+            if (codeBarang.isNotEmpty()) {
+                fetchHargaEceran(codeBarang) { harga ->
+                    hargaEceran = harga
+                    updateHargaBarangDisplay() // Update total price based on current quantity
+                }
+            }
         }
 
         private fun updateQuantityDisplay() {
             quantityTextView.text = "Quantity: $quantity"
             photoItems[adapterPosition].jumlah = quantity // Update photoItem's quantity value
         }
+
+        private fun updateHargaBarangDisplay() {
+            val totalHarga = hargaEceran?.times(quantity) ?: 0.0
+            hargaBarang.text = formatToRupiah(totalHarga) // Format the price
+            photoItems[adapterPosition].harga = totalHarga
+        }
+        private fun formatToRupiah(amount: Double): String {
+            val localeID = Locale("in", "ID") // Locale for Indonesia
+            val formatRupiah = NumberFormat.getCurrencyInstance(localeID)
+            return formatRupiah.format(amount)
+        }
     }
+
+
+
+    private fun fetchHargaEceran(codeBarang: String, onResult: (Double?) -> Unit) {
+        val db = FirebaseFirestore.getInstance()
+        db.collection("Spare Part")
+            .whereEqualTo("Nomor Barang", codeBarang)
+            .get()
+            .addOnSuccessListener { documents ->
+                val hargaEceran = documents.firstOrNull()?.getDouble("Harga Eceran")
+                onResult(hargaEceran)
+            }
+            .addOnFailureListener {
+                onResult(null) // Return null if there's an error fetching the price
+            }
+    }
+
 
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {

@@ -19,8 +19,10 @@ class CarDetailActivity : AppCompatActivity() {
     private var photoItems: List<PhotoItem> = emptyList() // Tambahkan photoItems sebagai variabel global
 
     private lateinit var urgencyRadioGroup: RadioGroup
-    private var selectedUrgency: String = "Comfort" // Default value
+    private var selectedUrgency: String = "None" // Default value
     private var sparePartSuggestions: List<String> = emptyList()
+    private lateinit var allCostCar: TextView
+
 
     @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,6 +34,8 @@ class CarDetailActivity : AppCompatActivity() {
         val statusTextView = findViewById<TextView>(R.id.status_tv)
         val confirmButton = findViewById<Button>(R.id.confirm_Btn)
         val carPhotosRecyclerView = findViewById<RecyclerView>(R.id.carPhotosRecyclerView)
+        //allCostCar = findViewById(R.id.AllCost_tv)
+
 
         carPhotosRecyclerView.layoutManager = LinearLayoutManager(this)
 
@@ -119,13 +123,16 @@ class CarDetailActivity : AppCompatActivity() {
                             val description = it["description"] as? String
                             val codeBarang = it["codeBarang"] as? String
                             val jumlah = (it["jumlah"] as? Number)?.toInt() ?: 0
+                            val harga = (it["harga"] as? Number)?.toDouble() ?: 0.0
 
                             if (url != null && description != null && codeBarang != null) {
-                                PhotoItem(url, description, codeBarang, jumlah)
+                                PhotoItem(url, description, codeBarang, jumlah, harga)
                             } else {
                                 null
                             }
                         } ?: emptyList()
+
+                        //updateTotalCost()
 
                         fetchSparePartsSuggestions { suggestions ->
                             val adapter = DetailPhotoAdapter(photoItems, suggestions)
@@ -141,10 +148,12 @@ class CarDetailActivity : AppCompatActivity() {
     }
 
     private fun updateCarStatus(documentId: String, newStatus: Boolean, updatedPhotos: List<Map<String, Any>>) {
+        val totalCost = photoItems.sumOf { it.jumlah * it.harga }
         val updates = mapOf(
             "status" to newStatus,
             "photos" to updatedPhotos,
-            "urgensi" to selectedUrgency // Add urgency to Firestore
+            "urgensi" to selectedUrgency, // Add urgency to Firestore
+            "Biaya" to totalCost
         )
 
         Log.d("CarDetail", "Updating status for document ID: $documentId to $newStatus")
@@ -175,6 +184,11 @@ class CarDetailActivity : AppCompatActivity() {
             }
     }
 
+    //private fun updateTotalCost() {
+    //   val totalCost = photoItems.sumOf { it.jumlah * it.harga }
+    //    allCostCar.text = "Total: Rp$totalCost" // Update the TextView with the total cost
+    //}
+
     private fun showConfirmationDialog(currentStatus: Boolean, documentId: String, statusTextView: TextView) {
         if (currentStatus) {
             Toast.makeText(this, "Status sudah Active dan tidak dapat diubah lagi.", Toast.LENGTH_SHORT).show()
@@ -194,7 +208,9 @@ class CarDetailActivity : AppCompatActivity() {
                     "url" to it.url,
                     "description" to it.description,
                     "codeBarang" to it.codeBarang,
-                    "jumlah" to it.jumlah
+                    "jumlah" to it.jumlah,
+                    "harga" to it.harga,
+                    "totalPrice" to it.jumlah * it.harga // Calculate and add total price
                 )
             }
 
