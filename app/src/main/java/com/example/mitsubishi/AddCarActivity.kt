@@ -131,7 +131,8 @@ class AddCarActivity : AppCompatActivity() {
                             "url" to downloadUrl.toString(),
                             "description" to description.ifEmpty { "Deskripsi gambar ke-${i + 1}" }, // Menggunakan deskripsi dari input pengguna
                             "codeBarang" to "",
-                            "jumlah" to "0"
+                            "jumlah" to "0",
+                            "biaya" to "0"
                         )
                         photoDataList.add(photoData)
 
@@ -141,7 +142,8 @@ class AddCarActivity : AppCompatActivity() {
                                 "noPolis" to nopol,
                                 "model" to model,
                                 "photos" to photoDataList,
-                                "status" to false
+                                "status" to false,
+                                "urgensi" to ""
                             )
                             db.collection("cars").document(carId)
                                 .set(carData)
