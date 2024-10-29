@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <EditText
+        android:id="@+id/noPolTextField"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter Car Number (NoPol)"
+        android:inputType="text"
+        android:padding="8dp"/>
+
+    <Button
+        android:id="@+id/searchButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Search Car"/>
+
+    <Button
+        android:id="@+id/generatePDFButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Generate PDF"
+        android:visibility="gone"/> <!-- Initially hidden -->
+
+    <EditText
+        android:id="@+id/phoneNumberTextField"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Nomor Telepon"
+        android:inputType="phone"
+        android:visibility="gone"/>
+
+    <Button
+        android:id="@+id/sharePDFButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Share PDF"
+        android:visibility="gone"/> <!-- Initially hidden -->
+
+</LinearLayout>

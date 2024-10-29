@@ -38,7 +38,6 @@ android {
 
 dependencies {
 
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
@@ -54,5 +53,11 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     implementation("com.github.bumptech.glide:glide:4.15.1")
     annotationProcessor("com.github.bumptech.glide:compiler:4.15.1")
+    implementation("com.itextpdf:itext7-core:7.2.3")
+
+    implementation ("com.google.android.gms:play-services-auth:21.2.0")
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.0")
+
 
 }
