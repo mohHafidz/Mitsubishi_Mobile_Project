@@ -49,7 +49,7 @@ class PDFGenerator(private val context: Context) {
                     tableHeader.setWidth(UnitValue.createPercentValue(100f))
                     tableHeader.addCell(Cell().add(Paragraph("No Polisi").setBold()))
                     tableHeader.addCell(Cell().add(Paragraph("Model").setBold()))
-                    tableHeader.addCell(Cell().add(Paragraph("Status").setBold()))
+                    tableHeader.addCell(Cell().add(Paragraph("Tanggal").setBold()))
                     tableHeader.addCell(noPol)
                     tableHeader.addCell(model)
                     tableHeader.addCell(if (status) "Active" else "Inactive")
