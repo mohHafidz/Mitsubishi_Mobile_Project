@@ -32,6 +32,7 @@ class PDFGenerator(private val context: Context) {
         val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
         val tanggalFormatted = tanggalSekarang.format(formatter)
         val pdfPath = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)?.toString()
+        var totalBiaya = 0.0
         if (pdfPath == null) {
             Log.e("PDFGenerator", "Failed to get the directory for saving PDF.")
             onComplete(null)
@@ -104,6 +105,7 @@ class PDFGenerator(private val context: Context) {
                             partTable.addCell(Cell().add(image))
                         } ?: partTable.addCell("") // Jika tidak ada gambar
 
+
                         // NO PART
                         partTable.addCell(photo.codeBarang ?: "")
 
@@ -118,6 +120,7 @@ class PDFGenerator(private val context: Context) {
 
                         // TOTAL
                         partTable.addCell(photo.totalPrice.toString() ?: "")
+                        totalBiaya += photo.totalPrice
 
                         // FAKTOR URGENSI
                         partTable.addCell(photo.urgensi ?: "")
@@ -128,6 +131,7 @@ class PDFGenerator(private val context: Context) {
 
                     // Tambahkan tabel part ke PDF
                     document.add(partTable)
+                    document.add(Paragraph("Total Biaya: $totalBiaya").setBold().setFontSize(16f))
 
                     // Tutup dokumen setelah selesai
                     document.close()
