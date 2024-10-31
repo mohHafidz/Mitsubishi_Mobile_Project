@@ -12,7 +12,7 @@
         android:id="@+id/search"
         android:layout_width="40dp"
         android:layout_height="36dp"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="38dp"
         android:layout_marginEnd="24dp"
         android:src="@drawable/baseline_search_24"
         app:layout_constraintEnd_toEndOf="parent"
@@ -21,8 +21,10 @@
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipeRefreshLayout"
         android:layout_width="408dp"
-        android:layout_height="667dp"
+        android:layout_height="637dp"
         android:layout_marginTop="6dp"
+        android:layout_marginBottom="5dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/noPolisET">
@@ -50,10 +52,12 @@
         android:layout_width="315dp"
         android:layout_height="48dp"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="35dp"
         android:ems="10"
         android:hint="No Polisi"
         android:inputType="text"
+        app:layout_constraintEnd_toStartOf="@+id/search"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
