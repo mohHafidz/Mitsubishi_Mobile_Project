@@ -20,11 +20,17 @@ import com.itextpdf.layout.properties.UnitValue
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 class PDFGenerator(private val context: Context) {
 
     fun createPDF(noPol: String, model: String, status: Boolean, photos: MutableList<Photo>, onComplete: (File?) -> Unit) {
         // Path untuk menyimpan PDF
+
+        val tanggalSekarang = LocalDate.now()
+        val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
+        val tanggalFormatted = tanggalSekarang.format(formatter)
         val pdfPath = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)?.toString()
         if (pdfPath == null) {
             Log.e("PDFGenerator", "Failed to get the directory for saving PDF.")
@@ -45,14 +51,14 @@ class PDFGenerator(private val context: Context) {
                     document.add(Paragraph("Car Details").setBold().setFontSize(20f))
 
                     // Buat tabel data kendaraan
-                    val tableHeader = Table(UnitValue.createPercentArray(floatArrayOf(1f, 2f, 1f)))
+                    val tableHeader = Table(UnitValue.createPercentArray(floatArrayOf(1f, 1f, 1f)))
                     tableHeader.setWidth(UnitValue.createPercentValue(100f))
                     tableHeader.addCell(Cell().add(Paragraph("No Polisi").setBold()))
                     tableHeader.addCell(Cell().add(Paragraph("Model").setBold()))
                     tableHeader.addCell(Cell().add(Paragraph("Tanggal").setBold()))
                     tableHeader.addCell(noPol)
                     tableHeader.addCell(model)
-                    tableHeader.addCell(if (status) "Active" else "Inactive")
+                    tableHeader.addCell(tanggalFormatted)
 
                     // Tambahkan header tabel ke PDF
                     document.add(tableHeader)
