@@ -1,6 +1,9 @@
 package com.example.mitsubishi
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.app.AlertDialog
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -22,11 +25,11 @@ import java.io.File
 class GeneratePDFActivity : AppCompatActivity() {
 
     private val db = FirebaseFirestore.getInstance()
-    private lateinit var searchButton: Button
     private lateinit var generatePDFButton: Button
     private lateinit var shareButton: Button
-    private lateinit var noPolTextField: EditText
     private lateinit var noTelp: EditText
+    private lateinit var no_plat : TextView
+    private lateinit var delete : TextView
 
     private companion object{
         private const val STORAGE_PERMISSION_CODE = 100
@@ -35,19 +38,32 @@ class GeneratePDFActivity : AppCompatActivity() {
 
     private var pdfFilePath: String? = null
 
+    @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_generate_pdf)
 
+        val plat = intent.getStringExtra("no.pol") ?: "No plate provided"
+
         // Inisialisasi tampilan
-        noPolTextField = findViewById(R.id.noPolTextField)
-        searchButton = findViewById(R.id.searchButton)
         generatePDFButton = findViewById(R.id.generatePDFButton)
         shareButton = findViewById(R.id.sharePDFButton)
         noTelp = findViewById(R.id.phoneNumberTextField)
+        no_plat = findViewById(R.id.plat)
+        delete = findViewById(R.id.delete)
+
+        no_plat.text = plat
+
+        delete.setOnClickListener {
+            showConfirmDialog(this,"Apakah anda yakin ingin menghapus data ini") {
+                deleteDocumentByNoPolis(plat)
+                finish()
+            }
+
+        }
 
         // Sembunyikan tombol generate PDF dan share PDF secara awal
-        generatePDFButton.visibility = View.GONE
+//        generatePDFButton.visibility = View.GONE
         shareButton.visibility = View.GONE
 
         if (checkPermission()){
@@ -57,19 +73,9 @@ class GeneratePDFActivity : AppCompatActivity() {
             requestPermission()
         }
 
-        // Setel pendengar klik untuk tombol pencarian
-        searchButton.setOnClickListener {
-            val noPol = noPolTextField.text.toString().trim()
-            if (noPol.isNotEmpty()) {
-                searchCarByNoPol(noPol)
-            } else {
-                Toast.makeText(this, "Please enter a car number", Toast.LENGTH_SHORT).show()
-            }
-        }
-
         // Setel pendengar klik untuk tombol generate PDF
         generatePDFButton.setOnClickListener {
-            val noPol = noPolTextField.text.toString().trim()
+            val noPol = plat.toString().trim()
             generatePDF(noPol)
         }
 
@@ -91,6 +97,46 @@ class GeneratePDFActivity : AppCompatActivity() {
             }
         }
     }
+
+    fun showConfirmDialog(context: Context, message: String, onConfirm: () -> Unit) {
+        val builder = AlertDialog.Builder(context)
+        builder.setMessage(message)
+            .setCancelable(false)
+            .setPositiveButton("Ya") { dialog, _ ->
+                onConfirm()
+                dialog.dismiss()
+            }
+            .setNegativeButton("Tidak") { dialog, _ ->
+                dialog.dismiss()
+            }
+
+        val alert = builder.create()
+        alert.show()
+    }
+
+    fun deleteDocumentByNoPolis(noPolis: String) {
+        // Query Firestore collection to find document with matching noPolis
+        db.collection("cars")
+            .whereEqualTo("noPolis", noPolis)
+            .get()
+            .addOnSuccessListener { documents ->
+                for (document in documents) {
+                    // Delete each document found with the matching noPolis
+                    db.collection("cars").document(document.id)
+                        .delete()
+                        .addOnSuccessListener {
+                            println("Document with noPolis: $noPolis deleted successfully!")
+                        }
+                        .addOnFailureListener { e ->
+                            println("Error deleting document: ${e.message}")
+                        }
+                }
+            }
+            .addOnFailureListener { e ->
+                println("Error finding document: ${e.message}")
+            }
+    }
+
 
     private fun requestPermission(){
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R){
@@ -177,7 +223,7 @@ class GeneratePDFActivity : AppCompatActivity() {
             .addOnSuccessListener { documents ->
                 for (document in documents) {
                     val model = document.getString("model") ?: "Unknown"
-                    val urgensi = document.getString("urgensi") ?: "Unknown"
+
                     val status = document.getBoolean("status") ?: false
 
                     val photoList = mutableListOf<Photo>()
@@ -190,7 +236,8 @@ class GeneratePDFActivity : AppCompatActivity() {
                             harga = (photoMap["harga"] as? Double)?.toLong() ?: 0L,
                             jumlah = (photoMap["jumlah"]),
                             totalPrice = (photoMap["totalPrice"] as? Double)?.toLong() ?: 0L,
-                            url = photoMap["url"] as? String ?: ""
+                            url = photoMap["url"] as? String ?: "",
+                            urgensi = photoMap["urgensi"] as? String ?: ""
                         )
 
                         photoList.add(photo)
@@ -198,7 +245,7 @@ class GeneratePDFActivity : AppCompatActivity() {
 
 
                     val pdfGenerator = PDFGenerator(this)
-                    pdfGenerator.createPDF(noPol, model, urgensi, status, photoList) { pdfFile ->
+                    pdfGenerator.createPDF(noPol, model, status, photoList) { pdfFile ->
                         if (pdfFile != null && pdfFile.exists()) {
                             Toast.makeText(this, "PDF generated successfully", Toast.LENGTH_SHORT).show()
                             pdfFilePath = pdfFile.absolutePath

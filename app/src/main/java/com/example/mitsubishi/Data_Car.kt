@@ -7,7 +7,8 @@ data class Photo(
     val harga: Long,
     val jumlah: Any?,
     val totalPrice: Long,
-    val url: String
+    val url: String,
+    val urgensi: String
 )
 
 data class Data_Car (

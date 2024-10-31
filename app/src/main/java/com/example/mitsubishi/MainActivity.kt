@@ -1,12 +1,16 @@
 package com.example.mitsubishi
 
 import CarListAdapter
+import android.annotation.SuppressLint
 
 import android.content.Intent
 
 import android.os.Bundle
 
 import android.util.Log
+import android.view.View
+import android.widget.EditText
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 
@@ -26,11 +30,22 @@ class MainActivity : AppCompatActivity(), CarListAdapter.OnItemClickListener {
     private val itemList = mutableListOf<car>()
     private lateinit var recyclerView: RecyclerView
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
+    private lateinit var searchET : EditText
+    private lateinit var searchBTN : ImageView
 
+    @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
+
+        searchET = findViewById(R.id.noPolisET)
+        searchBTN = findViewById(R.id.search)
+
+        searchBTN.setOnClickListener {
+            val nopol = searchET.text
+            searchCar(nopol.toString())
+        }
 
         // Inisialisasi SwipeRefreshLayout
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
@@ -57,6 +72,29 @@ class MainActivity : AppCompatActivity(), CarListAdapter.OnItemClickListener {
             fetchDataFromFirestore() // Fetch data from Firestore
         }
     }
+
+    private fun searchCar(noPolis: String) {
+        db.collection("cars")
+            .whereEqualTo("noPolis", noPolis)
+            .get()
+            .addOnSuccessListener { documents ->
+                if (!documents.isEmpty) {
+                    itemList.clear()
+                    for (document in documents) {
+                        val status = document.getBoolean("status") ?: false
+                        itemList.add(car(noPolis, status)) // Asumsi class Car sudah ada
+                    }
+                } else {
+                    Toast.makeText(this, "No data found for $noPolis", Toast.LENGTH_SHORT).show()
+                }
+                adapter.notifyDataSetChanged()
+            }
+            .addOnFailureListener { e ->
+                Log.e("GeneratePDF", "Error fetching car details", e)
+                Toast.makeText(this, "Failed to fetch car details: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
 
     private fun fetchDataFromFirestore() {
         swipeRefreshLayout.isRefreshing = true // Start refreshing layout
@@ -90,8 +128,10 @@ class MainActivity : AppCompatActivity(), CarListAdapter.OnItemClickListener {
     override fun onItemClick(car: car) {
         if (car.status) {
             // Jika status true, tampilkan Toast
-            val intent = Intent(this, GeneratePDFActivity::class.java).apply{}
-            Toast.makeText(this, "Ke page rama", Toast.LENGTH_SHORT).show()
+            val intent = Intent(this, GeneratePDFActivity::class.java).apply{
+                putExtra("no.pol", car.nopol)
+            }
+//            Toast.makeText(this, "Ke page rama", Toast.LENGTH_SHORT).show()
             startActivity(intent)
         } else {
             // Jika status false, navigasi ke detail page

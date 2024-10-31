@@ -41,6 +41,9 @@
             android:name=".CarDetailActivity"
             android:exported="false" />
         <activity
+            android:name=".GeneratePDFActivity"
+            android:exported="false" />
+        <activity
             android:name=".AddCarActivity"
             android:exported="false" />
         <activity

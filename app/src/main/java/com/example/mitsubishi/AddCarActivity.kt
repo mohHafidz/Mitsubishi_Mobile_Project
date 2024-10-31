@@ -78,12 +78,20 @@ class AddCarActivity : AppCompatActivity() {
         }
 
         add.setOnClickListener {
+            val nopolPattern = "^[A-Z]{1,2} \\d{1,4} [A-Z]{1,3}$".toRegex()
             val nopol = nopolET.text.toString().trim()
             val model = modelET.text.toString().trim()
 
             if (nopol.isEmpty() || model.isEmpty() || photoList.isEmpty()) {
                 Toast.makeText(this, "Tolong isi semua field dan tambahkan foto", Toast.LENGTH_SHORT).show()
-            } else {
+            }
+            else if(photoList.size == 0){
+                Toast.makeText(this, "Tolong isi semua field dan tambahkan foto", Toast.LENGTH_SHORT).show()
+            }
+            else if (!nopol.matches(nopolPattern)) {
+                Toast.makeText(this, "Format nomor polisi tidak valid. Contoh: F 12xx Nx", Toast.LENGTH_SHORT).show()
+            }
+            else {
                 showProgressDialog()
                 uploadPhotosAndSaveCar(nopol, model)
             }
@@ -133,6 +141,7 @@ class AddCarActivity : AppCompatActivity() {
                             "codeBarang" to "",
                             "jumlah" to "0",
                             "biaya" to "0"
+
                         )
                         photoDataList.add(photoData)
 
@@ -143,7 +152,6 @@ class AddCarActivity : AppCompatActivity() {
                                 "model" to model,
                                 "photos" to photoDataList,
                                 "status" to false,
-                                "urgensi" to ""
                             )
                             db.collection("cars").document(carId)
                                 .set(carData)
