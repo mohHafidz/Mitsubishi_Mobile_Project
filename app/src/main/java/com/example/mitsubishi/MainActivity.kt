@@ -97,32 +97,37 @@ class MainActivity : AppCompatActivity(), CarListAdapter.OnItemClickListener {
 
 
     private fun fetchDataFromFirestore() {
-        swipeRefreshLayout.isRefreshing = true // Start refreshing layout
+        swipeRefreshLayout.isRefreshing = true // Mulai refresh layout
         db.collection("cars")
             .get()
             .addOnSuccessListener { result ->
                 Log.d("FirestoreData", "Fetched ${result.size()} documents")
-                itemList.clear() // Clear the list
+                itemList.clear() // Kosongkan list
 
                 if (result.isEmpty) {
                     Log.d("FirestoreData", "No documents found")
                 } else {
                     for (document in result) {
-                        val nopol = document.getString("noPolis") ?: "Unknown"
-                        val status = document.getBoolean("status") ?: false // Retrieve as boolean
+                        val nopol = document.getString("noPolis")
+                        val status = document.getBoolean("status") ?: false // Ambil status sebagai boolean
 
-//                        Log.d("FirestoreData\", \"Adding document: $nopol, status: $status")
-                        itemList.add(car(nopol, status)) // Pass boolean status to Car object
+                        // Periksa jika dokumen memiliki data yang valid
+                        if (nopol != null) {
+                            itemList.add(car(nopol, status)) // Tambahkan ke itemList
+                        } else {
+                            Log.d("FirestoreData", "Skipping empty document")
+                        }
                     }
                     adapter.notifyDataSetChanged() // Update RecyclerView
                 }
-                swipeRefreshLayout.isRefreshing = false // Stop refreshing layout
+                swipeRefreshLayout.isRefreshing = false // Hentikan refresh layout
             }
             .addOnFailureListener { exception ->
                 Log.e("MainActivity", "Error getting documents: ", exception)
                 swipeRefreshLayout.isRefreshing = false
             }
     }
+
 
     // Handle item click
     override fun onItemClick(car: car) {
