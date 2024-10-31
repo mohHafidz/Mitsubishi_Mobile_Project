@@ -75,10 +75,17 @@ class GeneratePDFActivity : AppCompatActivity() {
 
         // Setel pendengar klik untuk tombol share
         shareButton.setOnClickListener {
-            pdfFilePath?.let { path -> sharePDF(path) }
             val phoneNumber = noTelp.text.toString().trim()
             if (phoneNumber.isNotEmpty()) {
-                openWhatsappContact(phoneNumber)
+                val formattedPhoneNumber = if (phoneNumber.startsWith("0")) {
+                    "62" + phoneNumber.substring(1) // Mengganti "0" di awal dengan "62"
+                } else {
+                    phoneNumber
+                }
+
+                pdfFilePath?.let { path ->
+                    sharePDF(path, formattedPhoneNumber)
+                }
             } else {
                 Toast.makeText(this, "Please enter a phone number", Toast.LENGTH_SHORT).show()
             }
@@ -210,22 +217,28 @@ class GeneratePDFActivity : AppCompatActivity() {
             }
     }
 
-    private fun sharePDF(filePath: String) {
+    private fun sharePDF(filePath: String, phoneNumber: String) {
         val file = File(filePath)
         val uri: Uri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", file)
 
-        val shareIntent = Intent().apply {
-            action = Intent.ACTION_SEND
+        val intent = Intent(Intent.ACTION_SEND).apply {
             type = "application/pdf"
             putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra("jid", "$phoneNumber@s.whatsapp.net") // Format nomor WhatsApp
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
-        startActivity(Intent.createChooser(shareIntent, "Share PDF via"))
+        intent.setPackage("com.whatsapp")
+
+        if (intent.resolveActivity(packageManager) != null) {
+            startActivity(intent)
+        } else {
+            Toast.makeText(this, "WhatsApp is not installed", Toast.LENGTH_SHORT).show()
+        }
     }
 
-    private fun openWhatsappContact(number: String) {
-        val file = File(pdfFilePath ?: return)
+    private fun openWhatsappContact(filePath: String, number: String) {
+        val file = File(filePath)
         val uri: Uri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", file)
 
         val intent = Intent(Intent.ACTION_SEND).apply {
@@ -238,7 +251,7 @@ class GeneratePDFActivity : AppCompatActivity() {
         intent.setPackage("com.whatsapp")
 
         if (intent.resolveActivity(packageManager) != null) {
-            startActivity(Intent.createChooser(intent, "Send PDF via WhatsApp"))
+            startActivity(intent) // Kirim langsung ke WhatsApp tanpa chooser
         } else {
             Toast.makeText(this, "WhatsApp is not installed", Toast.LENGTH_SHORT).show()
         }
