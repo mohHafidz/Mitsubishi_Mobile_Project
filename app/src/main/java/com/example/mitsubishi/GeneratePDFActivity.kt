@@ -90,7 +90,7 @@ class GeneratePDFActivity : AppCompatActivity() {
                 }
 
                 pdfFilePath?.let { path ->
-                    sharePDF(path, formattedPhoneNumber)
+                    openWhatsappContact(path, formattedPhoneNumber)
                 }
             } else {
                 Toast.makeText(this, "Please enter a phone number", Toast.LENGTH_SHORT).show()
@@ -297,16 +297,34 @@ class GeneratePDFActivity : AppCompatActivity() {
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "application/pdf"
             putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra("jid", "$phoneNumber@s.whatsapp.net") // Format nomor WhatsApp
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
-        intent.setPackage("com.whatsapp")
-
-        if (intent.resolveActivity(packageManager) != null) {
-            startActivity(intent)
+        // Cek apakah WhatsApp atau WhatsApp Business terpasang
+        if (isPackageInstalled("com.whatsapp")) {
+            intent.setPackage("com.whatsapp")
+        } else if (isPackageInstalled("com.whatsapp.w4b")) {
+            intent.setPackage("com.whatsapp.w4b")
         } else {
             Toast.makeText(this, "WhatsApp is not installed", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Mengirim intent ke WhatsApp
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error sharing PDF: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
+    private fun isPackageInstalled(packageName: String): Boolean {
+        return try {
+            packageManager.getPackageInfo(packageName, 0)
+            true
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
         }
     }
 
@@ -323,10 +341,18 @@ class GeneratePDFActivity : AppCompatActivity() {
 
         intent.setPackage("com.whatsapp")
 
-        if (intent.resolveActivity(packageManager) != null) {
-            startActivity(intent) // Kirim langsung ke WhatsApp tanpa chooser
-        } else {
+        startActivity(intent)
+
+        try {
+            startActivity(intent) // Kirim langsung ke WhatsApp
+        } catch (e: Exception) {
             Toast.makeText(this, "WhatsApp is not installed", Toast.LENGTH_SHORT).show()
         }
+
+//        if (intent.resolveActivity(packageManager) != null) {
+//            startActivity(intent) // Kirim langsung ke WhatsApp tanpa chooser
+//        } else {
+//            Toast.makeText(this, "WhatsApp is not installed", Toast.LENGTH_SHORT).show()
+//        }
     }
 }
