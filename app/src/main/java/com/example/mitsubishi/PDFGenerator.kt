@@ -25,14 +25,13 @@ import java.time.format.DateTimeFormatter
 
 class PDFGenerator(private val context: Context) {
 
-    fun createPDF(noPol: String, model: String, status: Boolean, photos: MutableList<Photo>, onComplete: (File?) -> Unit) {
+    fun createPDF(noPol: String, namaPart:String, model: String, totalPrice: Long, photos: MutableList<Photo>, onComplete: (File?) -> Unit) {
         // Path untuk menyimpan PDF
 
         val tanggalSekarang = LocalDate.now()
         val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
         val tanggalFormatted = tanggalSekarang.format(formatter)
         val pdfPath = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)?.toString()
-        var totalBiaya = 0.0
         if (pdfPath == null) {
             Log.e("PDFGenerator", "Failed to get the directory for saving PDF.")
             onComplete(null)
@@ -52,14 +51,16 @@ class PDFGenerator(private val context: Context) {
                     document.add(Paragraph("Car Details").setBold().setFontSize(20f))
 
                     // Buat tabel data kendaraan
-                    val tableHeader = Table(UnitValue.createPercentArray(floatArrayOf(1f, 1f, 1f)))
+                    val tableHeader = Table(UnitValue.createPercentArray(floatArrayOf(1f, 1f, 1f,1f)))
                     tableHeader.setWidth(UnitValue.createPercentValue(100f))
                     tableHeader.addCell(Cell().add(Paragraph("No Polisi").setBold()))
                     tableHeader.addCell(Cell().add(Paragraph("Model").setBold()))
                     tableHeader.addCell(Cell().add(Paragraph("Tanggal").setBold()))
+                    tableHeader.addCell(Cell().add(Paragraph("Total Price").setBold()))
                     tableHeader.addCell(noPol)
                     tableHeader.addCell(model)
                     tableHeader.addCell(tanggalFormatted)
+                    tableHeader.addCell(totalPrice.toString())
 
                     // Tambahkan header tabel ke PDF
                     document.add(tableHeader)
@@ -69,14 +70,14 @@ class PDFGenerator(private val context: Context) {
 
 
                     // Buat tabel untuk data bagian (parts)
-                    val partTable = Table(UnitValue.createPercentArray(floatArrayOf(1f, 2f, 2f, 1f, 1f, 1f, 1f, 2f)))
+                    val partTable = Table(UnitValue.createPercentArray(floatArrayOf(1f, 2f, 2f, 2f, 1f, 1f, 1f, 1f, 2f)))
                     partTable.setWidth(UnitValue.createPercentValue(100f))
 
                     // Header untuk tabel parts
                     partTable.addCell(Cell().add(Paragraph("NO").setBold()))
                     partTable.addCell(Cell().add(Paragraph("FOTO PART").setBold()))
                     partTable.addCell(Cell().add(Paragraph("NO PART").setBold()))
-//                    partTable.addCell(Cell().add(Paragraph("NAMA PART").setBold()))
+                    partTable.addCell(Cell().add(Paragraph("NAMA PART").setBold()))
                     partTable.addCell(Cell().add(Paragraph("HARGA").setBold()))
                     partTable.addCell(Cell().add(Paragraph("QTY").setBold()))
                     partTable.addCell(Cell().add(Paragraph("TOTAL").setBold()))
@@ -110,7 +111,7 @@ class PDFGenerator(private val context: Context) {
                         partTable.addCell(photo.codeBarang ?: "")
 
                         // NAMA PART
-//                        partTable.addCell(photo.namaPart ?: "")
+                        partTable.addCell(namaPart ?: "")
 
                         // HARGA
                         partTable.addCell(photo.harga.toString() ?: "")
@@ -120,7 +121,6 @@ class PDFGenerator(private val context: Context) {
 
                         // TOTAL
                         partTable.addCell(photo.totalPrice.toString() ?: "")
-                        totalBiaya += photo.totalPrice
 
                         // FAKTOR URGENSI
                         partTable.addCell(photo.urgensi ?: "")
@@ -129,9 +129,7 @@ class PDFGenerator(private val context: Context) {
                         partTable.addCell(photo.description ?: "")
                     }
 
-                    // Tambahkan tabel part ke PDF
                     document.add(partTable)
-                    document.add(Paragraph("Total Biaya: $totalBiaya").setBold().setFontSize(16f))
 
                     // Tutup dokumen setelah selesai
                     document.close()

@@ -223,37 +223,40 @@ class GeneratePDFActivity : AppCompatActivity() {
             .addOnSuccessListener { documents ->
                 for (document in documents) {
                     val model = document.getString("model") ?: "Unknown"
+                    val totalPrice = document.getLong("Biaya") ?: 0
 
-                    val status = document.getBoolean("status") ?: false
-
+                    // Process photo list
                     val photoList = mutableListOf<Photo>()
                     val photos = document.get("photos") as? List<Map<String, Any>>
-
                     photos?.forEach { photoMap ->
                         val photo = Photo(
                             codeBarang = photoMap["codeBarang"] as? String ?: "",
                             description = photoMap["description"] as? String ?: "",
                             harga = (photoMap["harga"] as? Double)?.toLong() ?: 0L,
-                            jumlah = (photoMap["jumlah"]),
+                            jumlah = photoMap["jumlah"],
                             totalPrice = (photoMap["totalPrice"] as? Double)?.toLong() ?: 0L,
                             url = photoMap["url"] as? String ?: "",
                             urgensi = photoMap["urgensi"] as? String ?: ""
                         )
-
                         photoList.add(photo)
                     }
 
+                    // Get codeBarang from the first photo as an example (adjust as needed)
+                    val codeBarang = photoList.firstOrNull()?.codeBarang ?: ""
 
-                    val pdfGenerator = PDFGenerator(this)
-                    pdfGenerator.createPDF(noPol, model, status, photoList) { pdfFile ->
-                        if (pdfFile != null && pdfFile.exists()) {
-                            Toast.makeText(this, "PDF generated successfully", Toast.LENGTH_SHORT).show()
-                            pdfFilePath = pdfFile.absolutePath
+                    // Use searchNamaPart with a callback to wait for namaPart asynchronously
+                    searchNamaPart(codeBarang) { namaPart ->
+                        val pdfGenerator = PDFGenerator(this)
+                        pdfGenerator.createPDF(noPol, namaPart, model, totalPrice, photoList) { pdfFile ->
+                            if (pdfFile != null && pdfFile.exists()) {
+                                Toast.makeText(this, "PDF generated successfully", Toast.LENGTH_SHORT).show()
+                                pdfFilePath = pdfFile.absolutePath
 
-                            shareButton.visibility = View.VISIBLE
-                            noTelp.visibility = View.VISIBLE
-                        } else {
-                            Toast.makeText(this, "Failed to generate PDF", Toast.LENGTH_SHORT).show()
+                                shareButton.visibility = View.VISIBLE
+                                noTelp.visibility = View.VISIBLE
+                            } else {
+                                Toast.makeText(this, "Failed to generate PDF", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     }
                 }
@@ -263,6 +266,29 @@ class GeneratePDFActivity : AppCompatActivity() {
                 Toast.makeText(this, "Failed to generate PDF: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
+
+
+
+    fun searchNamaPart(noBarang: String, callback: (String) -> Unit) {
+        db.collection("Spare Part")
+            .whereEqualTo("Nomor Barang", noBarang)
+            .get()
+            .addOnSuccessListener { documents ->
+                if (!documents.isEmpty) {
+                    // Assuming there's only one matching document
+                    val namaBarang = documents.documents[0].getString("Nama Barang") ?: "Unknown"
+                    callback(namaBarang)
+                } else {
+                    callback("Unknown")
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("GeneratePDF", "Error fetching car details", e)
+                Toast.makeText(this, "Failed to fetch car details: ${e.message}", Toast.LENGTH_SHORT).show()
+                callback("Unknown")
+            }
+    }
+
 
     private fun sharePDF(filePath: String, phoneNumber: String) {
         val file = File(filePath)
